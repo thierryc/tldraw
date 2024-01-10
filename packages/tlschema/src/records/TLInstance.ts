@@ -173,6 +173,7 @@ export const instanceVersions = {
 } as const
 
 /** @public */
+// eslint-disable-next-line deprecation/deprecation
 export const instanceMigrations = defineMigrations({
 	currentVersion: instanceVersions.AddInset,
 	migrators: {

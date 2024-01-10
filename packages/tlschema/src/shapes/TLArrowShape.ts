@@ -83,6 +83,7 @@ export const ArrowMigrationVersions = {
 } as const
 
 /** @internal */
+// eslint-disable-next-line deprecation/deprecation
 export const arrowShapeMigrations = defineMigrations({
 	currentVersion: ArrowMigrationVersions.AddIsPrecise,
 	migrators: {
