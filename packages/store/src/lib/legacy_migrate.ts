@@ -105,6 +105,7 @@ export function getRecordVersion(
 	record: UnknownRecord,
 	serializedSchema: SerializedSchema
 ): RecordVersion {
+	if (serializedSchema.schemaVersion !== 1) throw new Error('Invalid schema version')
 	const persistedType = serializedSchema.recordVersions[record.typeName]
 	if (!persistedType) {
 		return { rootVersion: 0 }

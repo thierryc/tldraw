@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { getOwnProperty, objectMapValues } from '@tldraw/utils'
+import { Result, getOwnProperty, objectMapValues } from '@tldraw/utils'
 import { IdOf, UnknownRecord } from './BaseRecord'
 import { RecordType } from './RecordType'
 import { SerializedStore, Store, StoreSnapshot } from './Store'
@@ -10,34 +10,49 @@ import {
 	migrate,
 	migrateRecord,
 } from './legacy_migrate'
+import { MigrationId, MigrationSequence } from './migrate'
 
-/** @public */
-export interface SerializedSchema {
-	/** Schema version is the version for this type you're looking at right now */
-	schemaVersion: number
-	/**
-	 * Store version is the version for the structure of the store. e.g. higher level structure like
-	 * removing or renaming a record type.
-	 */
-	storeVersion: number
-	/** Record versions are the versions for each record type. e.g. adding a new field to a record */
-	recordVersions: Record<
-		string,
-		| {
-				version: number
-		  }
-		| {
-				// subtypes are used for migrating shape and asset props
-				version: number
-				subTypeVersions: Record<string, number>
-				subTypeKey: string
-		  }
-	>
-}
+const LEGACY_SCHEMA_VERSION = 1
+const CURRENT_SCHEMA_VERSION = 2
+
+/** @deprecated - Use MigrationRecord */
+export type SerializedSchema =
+	| {
+			/** Schema version is the version for this type you're looking at right now */
+			schemaVersion: typeof CURRENT_SCHEMA_VERSION
+			versionHistory: MigrationId[]
+	  }
+	| {
+			/** Schema version is the version for this type you're looking at right now */
+			schemaVersion: typeof LEGACY_SCHEMA_VERSION
+			/**
+			 * Store version is the version for the structure of the store. e.g. higher level structure like
+			 * removing or renaming a record type.
+			 */
+			storeVersion: number
+			/** Record versions are the versions for each record type. e.g. adding a new field to a record */
+			recordVersions: Record<
+				string,
+				| {
+						version: number
+				  }
+				| {
+						// subtypes are used for migrating shape and asset props
+						version: number
+						subTypeVersions: Record<string, number>
+						subTypeKey: string
+				  }
+			>
+	  }
 
 /** @public */
 export type StoreSchemaOptions<R extends UnknownRecord, P> = {
-	/** @deprecated - use the new stuff */
+	/**
+	 * @public
+	 * Any migrations for the store's data.
+	 */
+	migrations?: MigrationSequence[]
+	/** @deprecated - Use `migrations` instead. */
 	snapshotMigrations?: Migrations
 	/** @public */
 	onValidationFailure?: (data: {
@@ -62,6 +77,9 @@ export class StoreSchema<R extends UnknownRecord, P = unknown> {
 	): StoreSchema<R, P> {
 		return new StoreSchema<R, P>(types as any, options ?? {})
 	}
+
+	private readonly sortedMigrationIds: MigrationId[]
+	private readonly migrations: Map<string, >
 
 	private constructor(
 		public readonly types: {
@@ -102,139 +120,29 @@ export class StoreSchema<R extends UnknownRecord, P = unknown> {
 		}
 	}
 
+	private getMigrationsSince(
+		schema: SerializedSchema,
+	): MigrationSequence | undefined {
+		if (schema.schemaVersion === LEGACY_SCHEMA_VERSION) {
+			return this.sortedMigrations
+
+		}
+
+	}
+
 	migratePersistedRecord(
 		record: R,
 		persistedSchema: SerializedSchema,
 		direction: 'up' | 'down' = 'up'
-	): MigrationResult<R> {
-		const ourType = getOwnProperty(this.types, record.typeName)
-		const persistedType = persistedSchema.recordVersions[record.typeName]
-		if (!persistedType || !ourType) {
-			return { type: 'error', reason: MigrationFailureReason.UnknownType }
-		}
-		const ourVersion = ourType.migrations.currentVersion
-		const persistedVersion = persistedType.version
-		if (ourVersion !== persistedVersion) {
-			const result =
-				direction === 'up'
-					? migrateRecord<R>({
-							record,
-							migrations: ourType.migrations,
-							fromVersion: persistedVersion,
-							toVersion: ourVersion,
-						})
-					: migrateRecord<R>({
-							record,
-							migrations: ourType.migrations,
-							fromVersion: ourVersion,
-							toVersion: persistedVersion,
-						})
-			if (result.type === 'error') {
-				return result
-			}
-			record = result.value
+	): MigrationResult<R> & Result<R, string> {
+		if (persistedSchema.schemaVersion === LEGACY_SCHEMA_VERSION) {
+
 		}
 
-		if (!ourType.migrations.subTypeKey) {
-			return { type: 'success', value: record }
-		}
-
-		// we've handled the main version migration, now we need to handle subtypes
-		// subtypes are used by shape and asset types to migrate the props shape, which is configurable
-		// by library consumers.
-
-		const ourSubTypeMigrations =
-			ourType.migrations.subTypeMigrations?.[
-				record[ourType.migrations.subTypeKey as keyof R] as string
-			]
-
-		const persistedSubTypeVersion =
-			'subTypeVersions' in persistedType
-				? persistedType.subTypeVersions[record[ourType.migrations.subTypeKey as keyof R] as string]
-				: undefined
-
-		// if ourSubTypeMigrations is undefined then we don't have access to the migrations for this subtype
-		// that is almost certainly because we are running on the server and this type was supplied by a 3rd party.
-		// It could also be that we are running in a client that is outdated. Either way, we can't migrate this record
-		// and we need to let the consumer know so they can handle it.
-		if (ourSubTypeMigrations === undefined) {
-			return { type: 'error', reason: MigrationFailureReason.UnrecognizedSubtype }
-		}
-
-		// if the persistedSubTypeVersion is undefined then the record was either created after the schema
-		// was persisted, or it was created in a different place to where the schema was persisted.
-		// either way we don't know what to do with it safely, so let's return failure.
-		if (persistedSubTypeVersion === undefined) {
-			return { type: 'error', reason: MigrationFailureReason.IncompatibleSubtype }
-		}
-
-		const result =
-			direction === 'up'
-				? migrateRecord<R>({
-						record,
-						migrations: ourSubTypeMigrations,
-						fromVersion: persistedSubTypeVersion,
-						toVersion: ourSubTypeMigrations.currentVersion,
-					})
-				: migrateRecord<R>({
-						record,
-						migrations: ourSubTypeMigrations,
-						fromVersion: ourSubTypeMigrations.currentVersion,
-						toVersion: persistedSubTypeVersion,
-					})
-
-		if (result.type === 'error') {
-			return result
-		}
-
-		return { type: 'success', value: result.value }
+		return { type: 'success', value: result.value, ok: true }
 	}
 
 	migrateStoreSnapshot(snapshot: StoreSnapshot<R>): MigrationResult<SerializedStore<R>> {
-		let { store } = snapshot
-
-		const migrations = this.options.snapshotMigrations
-		if (!migrations) {
-			return { type: 'success', value: store }
-		}
-		// apply store migrations first
-		const ourStoreVersion = migrations.currentVersion
-		const persistedStoreVersion = snapshot.schema.storeVersion ?? 0
-
-		if (ourStoreVersion < persistedStoreVersion) {
-			return { type: 'error', reason: MigrationFailureReason.TargetVersionTooOld }
-		}
-
-		if (ourStoreVersion > persistedStoreVersion) {
-			const result = migrate<SerializedStore<R>>({
-				value: store,
-				migrations,
-				fromVersion: persistedStoreVersion,
-				toVersion: ourStoreVersion,
-			})
-
-			if (result.type === 'error') {
-				return result
-			}
-			store = result.value
-		}
-
-		const updated: R[] = []
-		for (const r of objectMapValues(store)) {
-			const result = this.migratePersistedRecord(r, snapshot.schema)
-			if (result.type === 'error') {
-				return result
-			} else if (result.value && result.value !== r) {
-				updated.push(result.value)
-			}
-		}
-		if (updated.length) {
-			store = { ...store }
-			for (const r of updated) {
-				store[r.id as IdOf<R>] = r
-			}
-		}
-		return { type: 'success', value: store }
 	}
 
 	/** @internal */

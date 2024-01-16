@@ -5132,7 +5132,12 @@ export class Editor extends EventEmitter<TLEventMap> {
 		const changes: TLShapePartial[] = []
 
 		for (const id of ids) {
-			const shape = this.getShape(id)!
+			const shape = this.getShape(id)
+
+			if (!shape) {
+				throw Error(`Could not find a shape with the id ${id}.`)
+			}
+
 			const localDelta = Vec.Cast(offset)
 			const parentTransform = this.getShapeParentTransform(shape)
 			if (parentTransform) localDelta.rot(-parentTransform.rotation())
@@ -8272,7 +8277,7 @@ export class Editor extends EventEmitter<TLEventMap> {
 		keys: new Set<string>(),
 		/** A set containing the currently pressed buttons. */
 		buttons: new Set<number>(),
-		/** Whether the input is from a pen. */
+		/** Whether the input is from a pe. */
 		isPen: false,
 		/** Whether the shift key is currently pressed. */
 		shiftKey: false,
