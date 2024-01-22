@@ -1081,9 +1081,15 @@ export class SelectTool extends StateNode {
     // (undocumented)
     cleanUpDuplicateProps: () => void;
     // (undocumented)
-    duplicateProps?: DuplicateProps;
+    duplicateProps?: {
+        shapeIds: TLShapeId[];
+        offset: {
+            x: number;
+            y: number;
+        };
+    };
     // (undocumented)
-    static id: string;
+    static id: "select";
     // (undocumented)
     static initial: string;
     // (undocumented)

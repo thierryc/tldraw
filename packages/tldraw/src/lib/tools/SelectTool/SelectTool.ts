@@ -18,24 +18,21 @@ import { ScribbleBrushing } from './childStates/ScribbleBrushing'
 import { Translating } from './childStates/Translating'
 
 /** @public */
-type DuplicateProps = {
-	shapeIds: TLShapeId[]
-	offset: {
-		x: number
-		y: number
-	}
-}
-
-/** @public */
 export function isSelectTool(tool: StateNode | undefined): tool is SelectTool {
 	return tool?.id === SelectTool.id
 }
 
 /** @public */
 export class SelectTool extends StateNode {
-	static override id = 'select'
+	static override id = 'select' as const
 	static override initial = 'idle'
-	duplicateProps?: DuplicateProps
+	duplicateProps?: {
+		shapeIds: TLShapeId[]
+		offset: {
+			x: number
+			y: number
+		}
+	}
 
 	constructor(editor: Editor, parent?: StateNode) {
 		super(editor, parent)

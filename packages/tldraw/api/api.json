@@ -12786,9 +12786,17 @@
                   "text": "duplicateProps?: "
                 },
                 {
+                  "kind": "Content",
+                  "text": "{\n        shapeIds: "
+                },
+                {
                   "kind": "Reference",
-                  "text": "DuplicateProps",
-                  "canonicalReference": "@tldraw/tldraw!~DuplicateProps:type"
+                  "text": "TLShapeId",
+                  "canonicalReference": "@tldraw/tlschema!TLShapeId:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": "[];\n        offset: {\n            x: number;\n            y: number;\n        };\n    }"
                 },
                 {
                   "kind": "Content",
@@ -12801,7 +12809,7 @@
               "name": "duplicateProps",
               "propertyTypeTokenRange": {
                 "startIndex": 1,
-                "endIndex": 2
+                "endIndex": 4
               },
               "isStatic": false,
               "isProtected": false,
@@ -12818,7 +12826,7 @@
                 },
                 {
                   "kind": "Content",
-                  "text": "string"
+                  "text": "\"select\""
                 },
                 {
                   "kind": "Content",
