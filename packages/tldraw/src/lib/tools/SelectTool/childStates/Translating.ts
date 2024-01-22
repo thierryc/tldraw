@@ -214,16 +214,14 @@ export class Translating extends StateNode {
 	protected handleEnd() {
 		const { movingShapes } = this.snapshot
 
-		if (this.isCloning) {
+		if (this.isCloning && isSelectTool(this.parent)) {
 			const currentAveragePagePoint = Vec.Average(
 				movingShapes.map((s) => this.editor.getShapePageTransform(s.id)!.point())
 			)
 			const offset = Vec.Sub(currentAveragePagePoint, this.selectionSnapshot.averagePagePoint)
-			if (isSelectTool(this.parent)) {
-				this.parent.duplicateProps = {
-					shapeIds: movingShapes.map((s) => s.id),
-					offset: { x: offset.x, y: offset.y },
-				}
+			this.parent.duplicateProps = {
+				shapeIds: movingShapes.map((s) => s.id),
+				offset: { x: offset.x, y: offset.y },
 			}
 		}
 
