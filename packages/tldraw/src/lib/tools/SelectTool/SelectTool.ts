@@ -24,7 +24,7 @@ export function isSelectTool(tool: StateNode | undefined): tool is SelectTool {
 
 /** @public */
 export class SelectTool extends StateNode {
-	static override id = 'select' as const
+	static override id = 'select'
 	static override initial = 'idle'
 	duplicateProps?: {
 		shapeIds: TLShapeId[]

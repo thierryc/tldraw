@@ -1089,7 +1089,7 @@ export class SelectTool extends StateNode {
         };
     };
     // (undocumented)
-    static id: "select";
+    static id: string;
     // (undocumented)
     static initial: string;
     // (undocumented)

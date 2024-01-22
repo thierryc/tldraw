@@ -12826,7 +12826,7 @@
                 },
                 {
                   "kind": "Content",
-                  "text": "\"select\""
+                  "text": "string"
                 },
                 {
                   "kind": "Content",
