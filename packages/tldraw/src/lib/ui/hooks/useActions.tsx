@@ -412,7 +412,7 @@ export function ActionsProvider({ overrides, children }: ActionsProviderProps) {
 					let offset: { x: number; y: number }
 					const currentTool = editor.root.getCurrent()
 
-					if (isSelectTool(currentTool) && currentTool.duplicateProps !== undefined) {
+					if (isSelectTool(currentTool) && currentTool.duplicateProps) {
 						ids = currentTool.duplicateProps.shapeIds
 						offset = currentTool.duplicateProps.offset
 					} else {
@@ -432,7 +432,7 @@ export function ActionsProvider({ overrides, children }: ActionsProviderProps) {
 					editor.batch(() => {
 						editor.mark('duplicate shapes')
 						editor.duplicateShapes(ids, offset)
-						if (isSelectTool(currentTool) && currentTool.duplicateProps !== undefined) {
+						if (isSelectTool(currentTool) && currentTool.duplicateProps) {
 							// If we are using duplicate props then we update the shape ids to the
 							// ids of the newly created shapes to keep the duplication going
 							currentTool.duplicateProps = {
