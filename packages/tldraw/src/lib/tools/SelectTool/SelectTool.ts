@@ -1,4 +1,4 @@
-import { StateNode } from '@tldraw/editor'
+import { Editor, StateNode, TLShapeId, react } from '@tldraw/editor'
 import { Brushing } from './childStates/Brushing'
 import { Crop } from './childStates/Crop/Crop'
 import { Cropping } from './childStates/Cropping'
@@ -18,9 +18,46 @@ import { ScribbleBrushing } from './childStates/ScribbleBrushing'
 import { Translating } from './childStates/Translating'
 
 /** @public */
+type DuplicateProps = {
+	shapeIds: TLShapeId[]
+	offset: {
+		x: number
+		y: number
+	}
+}
+
+/** @public */
+export function isSelectTool(tool: StateNode | undefined): tool is SelectTool {
+	return tool?.id === SelectTool.id
+}
+
+/** @public */
 export class SelectTool extends StateNode {
 	static override id = 'select'
 	static override initial = 'idle'
+	duplicateProps?: DuplicateProps
+
+	constructor(editor: Editor, parent?: StateNode) {
+		super(editor, parent)
+		react('clean duplicate props', () => {
+			this.cleanUpDuplicateProps()
+		})
+	}
+
+	// We want to clean up the duplicate props when the selection changes
+	cleanUpDuplicateProps = () => {
+		const selectedShapeIds = this.editor.getSelectedShapeIds()
+		if (!this.duplicateProps) return
+		const duplicatedShapes = new Set(this.duplicateProps.shapeIds)
+		if (
+			selectedShapeIds.length === duplicatedShapes.size &&
+			selectedShapeIds.every((shapeId) => duplicatedShapes.has(shapeId))
+		) {
+			return
+		}
+		this.duplicateProps = undefined
+	}
+
 	static override children = () => [
 		Crop,
 		Cropping,

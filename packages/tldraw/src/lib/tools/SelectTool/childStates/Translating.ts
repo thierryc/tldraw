@@ -17,6 +17,7 @@ import {
 	moveCameraWhenCloseToEdge,
 } from '@tldraw/editor'
 import { DragAndDropManager } from '../DragAndDropManager'
+import { isSelectTool } from '../SelectTool'
 
 export class Translating extends StateNode {
 	static override id = 'translating'
@@ -218,12 +219,12 @@ export class Translating extends StateNode {
 				movingShapes.map((s) => this.editor.getShapePageTransform(s.id)!.point())
 			)
 			const offset = Vec.Sub(currentAveragePagePoint, this.selectionSnapshot.averagePagePoint)
-			this.editor.updateInstanceState({
-				duplicateProps: {
+			if (isSelectTool(this.parent)) {
+				this.parent.duplicateProps = {
 					shapeIds: movingShapes.map((s) => s.id),
 					offset: { x: offset.x, y: offset.y },
-				},
-			})
+				}
+			}
 		}
 
 		const changes: TLShapePartial[] = []

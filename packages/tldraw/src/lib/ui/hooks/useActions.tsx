@@ -18,6 +18,7 @@ import {
 	useEditor,
 } from '@tldraw/editor'
 import * as React from 'react'
+import { isSelectTool } from '../../tools/SelectTool/SelectTool'
 import { getEmbedInfo } from '../../utils/embeds/embeds'
 import { fitFrameToContent, removeFrame } from '../../utils/frames/frames'
 import { EditLinkDialog } from '../components/EditLinkDialog'
@@ -36,7 +37,7 @@ import { TLUiTranslationKey } from './useTranslation/TLUiTranslationKey'
 /** @public */
 export interface TLUiActionItem<
 	TransationKey extends string = string,
-	IconType extends string = string
+	IconType extends string = string,
 > {
 	icon?: IconType
 	id: string
@@ -409,10 +410,11 @@ export function ActionsProvider({ overrides, children }: ActionsProviderProps) {
 					const instanceState = editor.getInstanceState()
 					let ids: TLShapeId[]
 					let offset: { x: number; y: number }
+					const currentTool = editor.root.getCurrent()
 
-					if (instanceState.duplicateProps) {
-						ids = instanceState.duplicateProps.shapeIds
-						offset = instanceState.duplicateProps.offset
+					if (isSelectTool(currentTool) && currentTool.duplicateProps !== undefined) {
+						ids = currentTool.duplicateProps.shapeIds
+						offset = currentTool.duplicateProps.offset
 					} else {
 						ids = editor.getSelectedShapeIds()
 						const commonBounds = Box.Common(compact(ids.map((id) => editor.getShapePageBounds(id))))
@@ -420,25 +422,25 @@ export function ActionsProvider({ overrides, children }: ActionsProviderProps) {
 							? {
 									x: commonBounds.width + 10,
 									y: 0,
-							  }
+								}
 							: {
 									x: 16 / editor.getZoomLevel(),
 									y: 16 / editor.getZoomLevel(),
-							  }
+								}
 					}
 
-					editor.mark('duplicate shapes')
-					editor.duplicateShapes(ids, offset)
-					if (instanceState.duplicateProps) {
-						// If we are using duplicate props then we update the shape ids to the
-						// ids of the newly created shapes to keep the duplication going
-						editor.updateInstanceState({
-							duplicateProps: {
-								...instanceState.duplicateProps,
+					editor.batch(() => {
+						editor.mark('duplicate shapes')
+						editor.duplicateShapes(ids, offset)
+						if (isSelectTool(currentTool) && currentTool.duplicateProps !== undefined) {
+							// If we are using duplicate props then we update the shape ids to the
+							// ids of the newly created shapes to keep the duplication going
+							currentTool.duplicateProps = {
+								...currentTool.duplicateProps,
 								...{ shapeIds: editor.getSelectedShapeIds() },
-							},
-						})
-					}
+							}
+						}
+					})
 				},
 			},
 			{
