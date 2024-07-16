@@ -3,7 +3,7 @@ name: Prune preview deploys
 on:
   schedule:
     # run once per day at midnight or whatever
-    - cron: '0 0 * * *'
+    # - cron: '0 0 * * *'
 
 env:
   CI: 1
